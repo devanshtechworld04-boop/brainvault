@@ -17,10 +17,8 @@
       --muted: #94a3b8;
       --border: rgba(255, 255, 255, 0.12);
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 75px; overflow-x: hidden; }
-
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; overflow-x: hidden; }
     .app-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #131a2a; position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--border); }
     .brand { display: flex; align-items: center; gap: 10px; }
     .logo-icon { font-size: 26px; }
@@ -49,8 +47,8 @@
     .btn-secondary { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
     .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
 
-    .native-ad-box { background: var(--card); border: 1px dashed rgba(245, 158, 11, 0.5); border-radius: 14px; padding: 12px 14px; margin-bottom: 18px; position: relative; }
-    .ad-tag { position: absolute; top: 8px; right: 10px; font-size: 9px; background: rgba(245, 158, 11, 0.2); color: var(--warn); padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+    .native-ad-box { background: var(--card); border: 1px dashed rgba(245, 158, 11, 0.5); border-radius: 14px; padding: 14px; margin-bottom: 18px; cursor: pointer; }
+    .ad-tag { display: inline-block; font-size: 9px; background: rgba(245, 158, 11, 0.2); color: var(--warn); padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-bottom: 6px; }
     .native-ad-box strong { font-size: 14px; color: #fcd34d; display: block; margin-bottom: 2px; }
     .native-ad-box p { font-size: 12px; color: var(--muted); }
 
@@ -68,7 +66,6 @@
     .utility-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .util-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 12px 6px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
-    /* Quiz Screen */
     .quiz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .q-meta { display: flex; align-items: center; gap: 8px; }
     .cat-pill { background: rgba(99, 102, 241, 0.25); color: #a5b4fc; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
@@ -101,11 +98,8 @@
     .lifeline-btn small { font-size: 11px; color: var(--warn); }
     .lifeline-btn:disabled { opacity: 0.35; pointer-events: none; }
 
-    /* Result & Modals */
     .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px 18px; text-align: center; }
     .trophy { font-size: 52px; margin-bottom: 8px; }
-    .result-card h2 { color: #fff; margin-bottom: 4px; }
-    .result-card p { color: var(--muted); font-size: 13px; }
     .result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
     .r-stat { background: var(--card-2); padding: 12px; border-radius: 12px; }
     .r-stat strong { display: block; font-size: 18px; color: var(--accent); }
@@ -118,16 +112,19 @@
     .scroll-list { display: flex; flex-direction: column; gap: 10px; }
     .saved-item { background: var(--card-2); padding: 12px; border-radius: 10px; font-size: 13px; color: #fff; }
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    #debug-banner { background: #7f1d1d; color: #fecaca; font-size: 11px; padding: 6px 12px; display: none; }
     .banner-spacer { height: 70px; }
   </style>
 </head>
 <body>
+  <div id="debug-banner"></div>
+
   <header class="app-header">
     <div class="brand">
       <span class="logo-icon">🧠</span>
       <div>
         <h1>BrainVault 10K</h1>
-        <small id="total-db-count">Loading Database...</small>
+        <small id="total-db-count">Ready</small>
       </div>
     </div>
     <div class="header-stats">
@@ -155,10 +152,8 @@
 
     <div id="native-ad-slot" class="native-ad-box" onclick="watchRewardedForCoins()">
       <span class="ad-tag">SPONSORED • TAP FOR +50 🪙</span>
-      <div>
-        <strong>Daily Brain Challenge Reward</strong>
-        <p>Tap here to watch a quick video ad & claim +50 free lifeline coins!</p>
-      </div>
+      <strong>Daily Brain Challenge Reward</strong>
+      <p>Tap here to watch a quick video ad & claim +50 free lifeline coins!</p>
     </div>
 
     <div class="section-title">
@@ -175,7 +170,7 @@
     </div>
   </main>
 
-  <!-- SCREEN 2: QUIZ GAMEPLAY -->
+  <!-- SCREEN 2: QUIZ -->
   <section id="quiz-screen" class="screen">
     <div class="quiz-top">
       <button class="icon-btn" onclick="exitQuiz()">✕</button>
@@ -221,7 +216,7 @@
     </div>
   </section>
 
-  <!-- SCREEN 3: RESULT SUMMARY -->
+  <!-- SCREEN 3: RESULT -->
   <section id="result-screen" class="screen">
     <div class="result-card">
       <div class="trophy">🏆</div>
@@ -261,13 +256,24 @@
 
   <div class="banner-spacer"></div>
 
-  <!-- Load External Question Database -->
+  <!-- Error Catcher BEFORE external script -->
+  <script>
+    window.onerror = function(msg, url, line) {
+      var b = document.getElementById("debug-banner");
+      if (b) {
+        b.style.display = "block";
+        b.textContent = "DB Note: " + msg + " (Line " + line + ") - Using backup bank";
+      }
+      return false;
+    };
+  </script>
+
+  <!-- External 500 Questions File -->
   <script src="data/questions.js"></script>
 
-  <!-- Bulletproof App Engine -->
+  <!-- Core App Logic -->
   <script>
-    // Default Categories (Always defined even if external file fails)
-    const DEFAULT_CATEGORIES = [
+    var DEFAULT_CATS = [
       { id: "History", name: "Lost History", icon: "🏛️" },
       { id: "Science", name: "Weird Science", icon: "🧬" },
       { id: "Space", name: "Deep Cosmos", icon: "🪐" },
@@ -280,131 +286,75 @@
       { id: "Mysteries", name: "Unsolved Files", icon: "🕵️" }
     ];
 
-    const FALLBACK_BANK = [
+    var BACKUP_QUESTIONS = [
       { id: 1, cat: "History", q: "Which Roman emperor appointed his horse Incitatus as a priest?", options: ["Caligula", "Nero", "Commodus", "Elagabalus"], ans: 0, fact: "Caligula gave Incitatus a marble stable and ivory manger." },
-      { id: 2, cat: "Science", q: "What is the only letter absent from the Periodic Table?", options: ["Q", "J", "X", "Z"], ans: 1, fact: "The letter J never appears in any element symbol or name." }
+      { id: 2, cat: "Science", q: "What is the only letter absent from the Periodic Table?", options: ["Q", "J", "X", "Z"], ans: 1, fact: "The letter J never appears in any element symbol or name." },
+      { id: 3, cat: "Space", q: "Which planet has a day longer than its entire year?", options: ["Mercury", "Venus", "Neptune", "Uranus"], ans: 1, fact: "Venus takes 243 Earth days to rotate once, and 225 days to orbit the Sun." },
+      { id: 4, cat: "Psychology", q: "What is remembering unfinished tasks better than completed ones called?", options: ["Halo Effect", "Zeigarnik Effect", "Stroop Effect", "Capgras Delusion"], ans: 1, fact: "Named after psychologist Bluma Zeigarnik." },
+      { id: 5, cat: "Geography", q: "Which country contains more lakes than the rest of the world combined?", options: ["Finland", "Russia", "Canada", "Sweden"], ans: 2, fact: "Canada holds over 2 million lakes." },
+      { id: 6, cat: "Inventions", q: "What toy was originally invented in 1899 as a wallpaper cleaner?", options: ["Silly Putty", "Play-Doh", "Lego", "Slinky"], ans: 1, fact: "Play-Doh originally cleaned coal soot off wallpaper." },
+      { id: 7, cat: "Nature", q: "How many brains and hearts does an octopus possess?", options: ["1 brain, 3 hearts", "9 brains, 3 hearts", "3 brains, 2 hearts", "9 brains, 1 heart"], ans: 1, fact: "One central brain plus a mini-brain in each of its 8 arms." },
+      { id: 8, cat: "Culture", q: "In Switzerland, it is illegal to own just one of which social animal?", options: ["Parrot", "Guinea pig", "Rabbit", "Ferret"], ans: 1, fact: "Swiss law protects guinea pigs from loneliness." },
+      { id: 9, cat: "Records", q: "How long did the shortest war in history (Anglo-Zanzibar War) last?", options: ["2 hours", "38 minutes", "1 day", "12 minutes"], ans: 1, fact: "Fought on August 27, 1896." },
+      { id: 10, cat: "Mysteries", q: "What is the undeciphered 15th-century illustrated book called?", options: ["Codex Gigas", "Voynich Manuscript", "Rohonc Codex", "Book of Soyga"], ans: 1, fact: "No cryptographer has ever decoded its script." }
     ];
 
-    function getActiveCategories() {
-      return (typeof CATEGORIES !== "undefined" && Array.isArray(CATEGORIES)) ? CATEGORIES : DEFAULT_CATEGORIES;
+    function getCats() {
+      return (typeof CATEGORIES !== "undefined" && Array.isArray(CATEGORIES)) ? CATEGORIES : DEFAULT_CATS;
     }
 
-    function getActiveQuestions() {
-      return (typeof QUESTION_BANK !== "undefined" && Array.isArray(QUESTION_BANK) && QUESTION_BANK.length > 0) ? QUESTION_BANK : FALLBACK_BANK;
+    function getBank() {
+      if (typeof QUESTION_BANK !== "undefined" && Array.isArray(QUESTION_BANK) && QUESTION_BANK.length > 0) {
+        return QUESTION_BANK;
+      }
+      return BACKUP_QUESTIONS;
     }
 
-    // ADMOB CONFIG (Set isTesting: true while testing APK before Play Store publish!)
-    const AD_CONFIG = {
-      appOpen: "ca-app-pub-5317235020851620/1880905256",
-      banner: "ca-app-pub-5317235020851620/2289913450",
-      interstitial: "ca-app-pub-5317235020851620/6967525065",
-      rewarded: "ca-app-pub-5317235020851620/6584381682",
-      rewardedInterstitial: "ca-app-pub-5317235020851620/9402116716",
-      native: "ca-app-pub-5317235020851620/3716731101",
-      isTesting: true
+    // ==========================================
+    // ADMOB INTEGRATION (GOOGLE TEST IDS FOR VERIFICATION)
+    // ==========================================
+    // Note: Once verified, replace with your live IDs & set isTesting: false before Play Store upload
+    var AD_IDS = {
+      banner: "ca-app-pub-3940256099942544/6300978111",
+      interstitial: "ca-app-pub-3940256099942544/1033173712",
+      rewarded: "ca-app-pub-3940256099942544/5224354917"
     };
 
-    let AdMobPlugin = null;
-    let SharePlugin = null;
+    var AdMob = null;
+    var Share = null;
 
-    async function initNativePlugins() {
+    async function setupAds() {
       try {
         if (window.Capacitor && window.Capacitor.Plugins) {
-          AdMobPlugin = window.Capacitor.Plugins.AdMob;
-          SharePlugin = window.Capacitor.Plugins.Share;
-          if (AdMobPlugin) {
-            await AdMobPlugin.initialize({ initializeForTesting: AD_CONFIG.isTesting });
-            showBannerAd();
-            prepareInterstitial();
-            prepareRewarded();
+          AdMob = window.Capacitor.Plugins.AdMob;
+          Share = window.Capacitor.Plugins.Share;
+          if (AdMob) {
+            await AdMob.initialize({ initializeForTesting: true });
+            await AdMob.showBanner({
+              adId: AD_IDS.banner,
+              adSize: "ADAPTIVE_BANNER",
+              position: "BOTTOM_CENTER",
+              margin: 0,
+              isTesting: true
+            });
+            await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: true });
+            await AdMob.prepareRewardVideoAd({ adId: AD_IDS.rewarded, isTesting: true });
           }
         }
-      } catch (e) {
-        console.log("Plugin init error:", e);
+      } catch (err) {
+        console.log("AdMob setup:", err);
       }
     }
 
-    async function showBannerAd() {
-      if (!AdMobPlugin) return;
+    async function showInterstitial() {
+      if (!AdMob) return;
       try {
-        await AdMobPlugin.showBanner({
-          adId: AD_CONFIG.banner,
-          adSize: "ADAPTIVE_BANNER",
-          position: "BOTTOM_CENTER",
-          margin: 0,
-          isTesting: AD_CONFIG.isTesting
-        });
+        await AdMob.showInterstitial();
+        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: true });
       } catch (e) {}
     }
 
-    async function prepareInterstitial() {
-      if (!AdMobPlugin) return;
-      try {
-        await AdMobPlugin.prepareInterstitial({ adId: AD_CONFIG.interstitial, isTesting: AD_CONFIG.isTesting });
-      } catch (e) {}
-    }
-
-    async function showInterstitialAd() {
-      if (!AdMobPlugin) return;
-      try {
-        await AdMobPlugin.showInterstitial();
-        prepareInterstitial();
-      } catch (e) {}
-    }
-
-    async function prepareRewarded() {
-      if (!AdMobPlugin) return;
-      try {
-        await AdMobPlugin.prepareRewardVideoAd({ adId: AD_CONFIG.rewarded, isTesting: AD_CONFIG.isTesting });
-      } catch (e) {}
-    }
-
-    async function triggerRewardedAd(onRewardCallback) {
-      if (!AdMobPlugin) {
-        onRewardCallback();
-        return;
-      }
-      try {
-        const reward = await AdMobPlugin.showRewardVideoAd();
-        if (reward) onRewardCallback();
-        prepareRewarded();
-      } catch (e) {
-        // Grant reward smoothly if network is slow during test
-        onRewardCallback();
-        prepareRewarded();
-      }
-    }
-
-    // Sound Engine
-    let audioCtx = null;
-    function playTone(type) {
-      if (!state.sound) return;
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        if (type === "correct") {
-          osc.frequency.setValueAtTime(520, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
-        } else if (type === "wrong") {
-          osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-          osc.frequency.linearRampToValueAtTime(130, audioCtx.currentTime + 0.25);
-        } else {
-          osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        }
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.25);
-      } catch (e) {}
-    }
-
-    // App State
-    let state = {
-      coins: 150,
-      streak: 1,
-      solvedIds: [],
-      bookmarks: [],
-    
+    async function showRewarded(callback) {
+      if (!AdMob) {
+        callback();
+        re
