@@ -11,6 +11,7 @@ const CATEGORIES = [
   { id: "Mysteries", name: "Unsolved Files", icon: "🕵️" }
 ];
 
+// Compact format: [Category, Question, [OptionA, OptionB, OptionC, OptionD], CorrectIndex, DidYouKnowFact]
 const RAW_TRIVIA_500 = [
   ["History","Which Roman emperor appointed his horse Incitatus as a priest and planned to make him consul?",["Caligula","Nero","Commodus","Elagabalus"],0,"Caligula gave his horse a marble stable, ivory manger, and a house with servants."],
   ["History","In 1932, the Australian military fought an unsuccessful war against which flightless bird?",["Cassowary","Emu","Ostrich","Kiwi"],1,"During the Great Emu War, soldiers with machine guns failed to cull the fast-moving emu population."],
@@ -88,4 +89,4 @@ const RAW_TRIVIA_500 = [
   ["Science","What is the densest naturally occurring element on Earth?",["Gold","Osmium","Platinum","Tungsten"],1,"Osmium is twice as dense as lead; a pint-sized block weighs over 10 kilograms."],
   ["Science","Which blood type is known as the 'Golden Blood' because it lacks all Rh antigens?",["O-negative","Rh-null","AB-negative","Bombay blood"],1,"Fewer than 50 people in the world are known to have Rh-null blood."],
   ["Science","What temperature is the same on both the Celsius and Fahrenheit scales?",["0 degrees","-40 degrees","-273 degrees","32 degrees"],1,"-40°C is mathematically identical to -40°F."],
-  ["Science","How many bacterial cells live in and on the average human body compared to human cells?",["10 times more","Roughly 1:1 ratio","100 times fewer","1,000 times more"],1,"Modern estimates show roughly 38 trillion bacteria to 30 trillion
+  ["Science","How many bacterial cells live in and on the average human body compared to human cells?",["10 times more","Roughly 1:1 ratio
