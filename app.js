@@ -22,29 +22,87 @@ document.addEventListener("DOMContentLoaded", function () {
     ? QUESTION_BANK
     : FALLBACK;
 
-  // AdMob Setup (Google Official Test IDs for Instant Verification)
+  // ==========================================
+  // 1. SOUND ENGINE (BUILT-IN SYNTHESIZER)
+  // ==========================================
+  var audioCtx = null;
+  function playSound(type) {
+    if (!state.sound) return;
+    try {
+      var AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      var now = audioCtx.currentTime;
+
+      if (type === "correct") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } else if (type === "wrong") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === "reward") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.setValueAtTime(880, now + 0.1);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } else {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(600, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      }
+    } catch (e) {}
+  }
+
+  // ==========================================
+  // 2. ADMOB SETUP (HIGH REWARDED AD FREQUENCY)
+  // ==========================================
   var AdMob = (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins.AdMob : null;
   var Share = (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins.Share : null;
 
-  var TEST_IDS = {
+  // Currently set to Google Test IDs so you can see ads immediately.
+  // Before Play Store upload, replace with your real Unit IDs & set isTesting: false
+  var AD_CONFIG = {
     banner: "ca-app-pub-3940256099942544/6300978111",
     interstitial: "ca-app-pub-3940256099942544/1033173712",
-    rewarded: "ca-app-pub-3940256099942544/5224354917"
+    rewarded: "ca-app-pub-3940256099942544/5224354917",
+    isTesting: true
   };
 
   async function initAds() {
     if (!AdMob) return;
     try {
-      await AdMob.initialize({ initializeForTesting: true });
+      await AdMob.initialize({ initializeForTesting: AD_CONFIG.isTesting });
       await AdMob.showBanner({
-        adId: TEST_IDS.banner,
+        adId: AD_CONFIG.banner,
         adSize: "ADAPTIVE_BANNER",
         position: "BOTTOM_CENTER",
         margin: 0,
-        isTesting: true
+        isTesting: AD_CONFIG.isTesting
       });
-      await AdMob.prepareInterstitial({ adId: TEST_IDS.interstitial, isTesting: true });
-      await AdMob.prepareRewardVideoAd({ adId: TEST_IDS.rewarded, isTesting: true });
+      await AdMob.prepareInterstitial({ adId: AD_CONFIG.interstitial, isTesting: AD_CONFIG.isTesting });
+      await AdMob.prepareRewardVideoAd({ adId: AD_CONFIG.rewarded, isTesting: AD_CONFIG.isTesting });
     } catch (e) {}
   }
 
@@ -52,22 +110,32 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!AdMob) return;
     try {
       await AdMob.showInterstitial();
-      await AdMob.prepareInterstitial({ adId: TEST_IDS.interstitial, isTesting: true });
+      await AdMob.prepareInterstitial({ adId: AD_CONFIG.interstitial, isTesting: AD_CONFIG.isTesting });
     } catch (e) {}
   }
 
   async function showRewarded(onDone) {
-    if (!AdMob) return onDone();
+    if (!AdMob) {
+      playSound("reward");
+      return onDone();
+    }
     try {
       var r = await AdMob.showRewardVideoAd();
-      if (r) onDone();
-      await AdMob.prepareRewardVideoAd({ adId: TEST_IDS.rewarded, isTesting: true });
+      if (r) {
+        playSound("reward");
+        onDone();
+      }
+      await AdMob.prepareRewardVideoAd({ adId: AD_CONFIG.rewarded, isTesting: AD_CONFIG.isTesting });
     } catch (e) {
+      playSound("reward");
       onDone();
+      try { await AdMob.prepareRewardVideoAd({ adId: AD_CONFIG.rewarded, isTesting: AD_CONFIG.isTesting }); } catch (err) {}
     }
   }
 
-  // State
+  // ==========================================
+  // 3. STATE & UI
+  // ==========================================
   var state = { coins: 150, streak: 1, solvedIds: [], bookmarks: [], totalPlayed: 0, totalCorrect: 0, sound: true };
   try {
     var saved = JSON.parse(localStorage.getItem("bv_10k_state"));
@@ -97,11 +165,17 @@ document.addEventListener("DOMContentLoaded", function () {
       var card = document.createElement("div");
       card.className = "cat-card";
       card.innerHTML = '<span class="cat-icon">' + c.icon + '</span><h4>' + c.name + '</h4><span>' + cnt + ' Rare Facts</span>';
-      card.addEventListener("click", function () { startQuiz(c.id); });
+      card.addEventListener("click", function () {
+        playSound("click");
+        startQuiz(c.id);
+      });
       grid.appendChild(card);
     });
   }
 
+  // ==========================================
+  // 4. QUIZ ENGINE
+  // ==========================================
   var session = [], idx = 0, score = 0, correctCnt = 0, timer = null, sec = 20, answered = false;
 
   function switchScreen(id) {
@@ -160,6 +234,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".opt-btn").forEach(function (b) { b.style.pointerEvents = "none"; });
     state.totalPlayed++;
     if (choice === q.ans) {
+      playSound("correct");
       document.getElementById("opt-" + choice).classList.add("correct");
       score += 10 + sec;
       correctCnt++;
@@ -167,6 +242,7 @@ document.addEventListener("DOMContentLoaded", function () {
       state.coins += 5;
       if (state.solvedIds.indexOf(q.id) === -1) state.solvedIds.push(q.id);
     } else {
+      playSound("wrong");
       if (choice >= 0) document.getElementById("opt-" + choice).classList.add("wrong");
       document.getElementById("opt-" + q.ans).classList.add("correct");
     }
@@ -175,15 +251,19 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("fact-box").classList.remove("hidden");
   }
 
-  // Bind All Buttons Cleanly
-  document.getElementById("btn-quick-play").addEventListener("click", function () { startQuiz("ALL"); });
-  document.getElementById("btn-exit-quiz").addEventListener("click", function () { clearInterval(timer); switchScreen("home-screen"); refreshUI(); });
-  document.getElementById("btn-go-home").addEventListener("click", function () { switchScreen("home-screen"); refreshUI(); });
-  document.getElementById("sound-toggle").addEventListener("click", function () { state.sound = !state.sound; saveState(); });
+  // ==========================================
+  // 5. BUTTONS & REWARDED ADS TRIGGERS
+  // ==========================================
+  document.getElementById("btn-quick-play").addEventListener("click", function () { playSound("click"); startQuiz("ALL"); });
+  document.getElementById("btn-exit-quiz").addEventListener("click", function () { playSound("click"); clearInterval(timer); switchScreen("home-screen"); refreshUI(); });
+  document.getElementById("btn-go-home").addEventListener("click", function () { playSound("click"); switchScreen("home-screen"); refreshUI(); });
+  document.getElementById("sound-toggle").addEventListener("click", function () { state.sound = !state.sound; saveState(); if (state.sound) playSound("click"); });
 
   document.getElementById("btn-next-q").addEventListener("click", function () {
+    playSound("click");
     idx++;
-    if (idx === 7) showInterstitial();
+    // Interstitial ad every 5 questions for higher eCPM
+    if (idx === 5 || idx === 10) showInterstitial();
     if (idx < session.length) loadQuestion();
     else {
       showInterstitial();
@@ -194,38 +274,75 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // Lifeline 1: 50:50 (Offers Rewarded Ad if out of coins!)
   document.getElementById("ll-5050").addEventListener("click", function () {
-    if (answered || state.coins < 25) return alert("Need 25 coins!");
-    state.coins -= 25; saveState();
-    this.disabled = true;
-    var q = session[idx];
-    var wrong = [0, 1, 2, 3].filter(function (i) { return i !== q.ans; }).sort(function () { return Math.random() - 0.5; });
-    document.getElementById("opt-" + wrong[0]).classList.add("disabled");
-    document.getElementById("opt-" + wrong[1]).classList.add("disabled");
+    if (answered) return;
+    var self = this;
+    function apply5050() {
+      self.disabled = true;
+      var q = session[idx];
+      var wrong = [0, 1, 2, 3].filter(function (i) { return i !== q.ans; }).sort(function () { return Math.random() - 0.5; });
+      document.getElementById("opt-" + wrong[0]).classList.add("disabled");
+      document.getElementById("opt-" + wrong[1]).classList.add("disabled");
+    }
+    if (state.coins >= 25) {
+      playSound("click");
+      state.coins -= 25; saveState();
+      apply5050();
+    } else {
+      if (confirm("Not enough coins! Watch a short Rewarded Ad to use 50:50 for FREE?")) {
+        showRewarded(apply5050);
+      }
+    }
   });
 
+  // Lifeline 2: +15s Time (Offers Rewarded Ad if out of coins!)
   document.getElementById("ll-time").addEventListener("click", function () {
-    if (answered || state.coins < 20) return alert("Need 20 coins!");
-    state.coins -= 20; saveState();
-    sec += 15;
-    document.getElementById("timer-sec").textContent = sec;
-    this.disabled = true;
+    if (answered) return;
+    var self = this;
+    function applyTime() {
+      sec += 15;
+      document.getElementById("timer-sec").textContent = sec;
+      self.disabled = true;
+    }
+    if (state.coins >= 20) {
+      playSound("click");
+      state.coins -= 20; saveState();
+      applyTime();
+    } else {
+      if (confirm("Not enough coins! Watch a short Rewarded Ad to get +15s FREE?")) {
+        showRewarded(applyTime);
+      }
+    }
   });
 
+  // Lifeline 3: Skip Question (Direct Rewarded Ad)
   document.getElementById("ll-skip").addEventListener("click", function () {
     if (!answered) showRewarded(function () { document.getElementById("btn-next-q").click(); });
   });
 
+  // Home & Result Rewarded Ad Buttons
   function addFreeCoins() {
-    showRewarded(function () { state.coins += 50; saveState(); alert("🎉 +50 Coins Added!"); });
+    showRewarded(function () {
+      state.coins += 50;
+      saveState();
+      alert("🎉 +50 Coins Added!");
+    });
   }
   document.getElementById("btn-free-coins").addEventListener("click", addFreeCoins);
   document.getElementById("native-ad-slot").addEventListener("click", addFreeCoins);
+
   document.getElementById("btn-double-coins").addEventListener("click", function () {
-    showRewarded(function () { var b = correctCnt * 5; state.coins += b; saveState(); alert("🎉 +" + b + " Extra Coins!"); });
+    showRewarded(function () {
+      var b = Math.max(25, correctCnt * 5);
+      state.coins += b;
+      saveState();
+      alert("🎉 2X Bonus! +" + b + " Extra Coins Added!");
+    });
   });
 
   function doShare(title, text) {
+    playSound("click");
     if (Share) Share.share({ title: title, text: text, dialogTitle: title });
     else if (navigator.share) navigator.share({ title: title, text: text });
     else alert(text);
@@ -235,6 +352,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("btn-share-score").addEventListener("click", function () { doShare("My Score", "🏆 I scored " + score + " pts on BrainVault 10K!"); });
 
   document.getElementById("bookmark-btn").addEventListener("click", function () {
+    playSound("click");
     var q = session[idx];
     var i = state.bookmarks.indexOf(q.id);
     if (i > -1) state.bookmarks.splice(i, 1); else state.bookmarks.push(q.id);
@@ -243,15 +361,17 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   document.getElementById("btn-open-bookmarks").addEventListener("click", function () {
+    playSound("click");
     var saved = BANK.filter(function (q) { return state.bookmarks.indexOf(q.id) > -1; });
     document.getElementById("bookmarks-list").innerHTML = saved.length
       ? saved.map(function (q) { return '<div class="saved-item"><strong>' + q.q + '</strong><br><small style="color:#10b981">✔ ' + q.options[q.ans] + '</small></div>'; }).join("")
       : "<p style='color:#94a3b8'>No saved facts yet!</p>";
     document.getElementById("bookmarks-modal").classList.remove("hidden");
   });
-  document.getElementById("close-bookmarks").addEventListener("click", function () { document.getElementById("bookmarks-modal").classList.add("hidden"); });
+  document.getElementById("close-bookmarks").addEventListener("click", function () { playSound("click"); document.getElementById("bookmarks-modal").classList.add("hidden"); });
 
   document.getElementById("btn-open-stats").addEventListener("click", function () {
+    playSound("click");
     var acc = state.totalPlayed ? Math.round((state.totalCorrect / state.totalPlayed) * 100) : 0;
     document.getElementById("stats-body").innerHTML =
       '<div class="r-stat"><strong>' + state.totalPlayed + '</strong><span>Answered</span></div>' +
@@ -260,11 +380,10 @@ document.addEventListener("DOMContentLoaded", function () {
       '<div class="r-stat"><strong>' + state.streak + ' Days</strong><span>Streak</span></div>';
     document.getElementById("stats-modal").classList.remove("hidden");
   });
-  document.getElementById("close-stats").addEventListener("click", function () { document.getElementById("stats-modal").classList.add("hidden"); });
+  document.getElementById("close-stats").addEventListener("click", function () { playSound("click"); document.getElementById("stats-modal").classList.add("hidden"); });
 
-  // Initialize Everything
   renderCategories();
   refreshUI();
   initAds();
 });
-                                    
+    
