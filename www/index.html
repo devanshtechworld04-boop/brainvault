@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>BrainVault: 10K Rare Trivia</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo-icon">🧠</span>
+      <div>
+        <h1>BrainVault 10K</h1>
+        <small id="total-db-count">500 Rare Facts Ready</small>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="pill" title="Coins">🪙 <span id="coin-count">150</span></div>
+      <div class="pill" title="Streak">🔥 <span id="streak-count">1</span></div>
+      <button id="sound-toggle" class="icon-btn" aria-label="Sound">🔊</button>
+    </div>
+  </header>
+
+  <main id="home-screen" class="screen active">
+    <div class="hero-card">
+      <div class="badge">OFFLINE EDITION • RARE FACTS</div>
+      <h2>Challenge Your Mind With Facts Almost Nobody Knows</h2>
+      <p>Master mind-bending trivia questions across 10 unique categories.</p>
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span>Mastery Progress</span>
+          <span id="mastery-text">0 Solved</span>
+        </div>
+        <div class="progress-bar"><div id="mastery-fill" style="width: 0%"></div></div>
+      </div>
+      <button class="btn-primary" onclick="startQuiz('ALL')">▶ Quick Play (Random Mix)</button>
+    </div>
+
+    <div id="native-ad-slot" class="native-ad-box">
+      <span class="ad-tag">SPONSORED</span>
+      <div id="native-ad-content">
+        <strong>Daily Brain Challenge</strong>
+        <p>Play 15 questions daily & use 50:50 lifelines to boost your score!</p>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <h3>Explore Categories</h3>
+      <button class="text-btn" onclick="openModal('bookmarks-modal')">🔖 Saved (<span id="bookmark-count">0</span>)</button>
+    </div>
+
+    <div id="category-grid" class="category-grid"></div>
+
+    <div class="utility-bar">
+      <button class="util-btn" onclick="shareApp()">📤 Share App</button>
+      <button class="util-btn" onclick="openModal('stats-modal')">📊 My Stats</button>
+      <button class="util-btn" onclick="watchRewardedForCoins()">🎬 +50 Coins</button>
+    </div>
+  </main>
+
+  <section id="quiz-screen" class="screen">
+    <div class="quiz-top">
+      <button class="icon-btn" onclick="exitQuiz()">✕</button>
+      <div class="q-meta">
+        <span id="quiz-cat-badge" class="cat-pill">Science</span>
+        <span id="q-counter">Q 1/15</span>
+      </div>
+      <div class="timer-ring" id="timer-box">⏱ <span id="timer-sec">20</span>s</div>
+    </div>
+
+    <div class="question-card">
+      <div class="q-actions-top">
+        <span class="difficulty-tag">RARE FACT</span>
+        <button id="bookmark-btn" class="icon-btn-sm" onclick="toggleBookmark()">🔖</button>
+      </div>
+      <h2 id="question-text">Loading question...</h2>
+    </div>
+
+    <div id="options-list" class="options-list"></div>
+
+    <div id="fact-box" class="fact-box hidden">
+      <div class="fact-header">💡 <strong>Did You Know?</strong></div>
+      <p id="fact-explanation"></p>
+      <div class="fact-actions">
+        <button class="btn-sm" onclick="shareCurrentFact()">📤 Share Fact</button>
+        <button class="btn-sm btn-next" onclick="nextQuestion()">Next Question ➔</button>
+      </div>
+    </div>
+
+    <div class="lifelines-bar">
+      <button class="lifeline-btn" id="ll-5050" onclick="use5050()">
+        <span>✂️ 50:50</span>
+        <small>25 🪙</small>
+      </button>
+      <button class="lifeline-btn" id="ll-time" onclick="useExtraTime()">
+        <span>⏳ +15s</span>
+        <small>20 🪙</small>
+      </button>
+      <button class="lifeline-btn" id="ll-skip" onclick="useSkipAd()">
+        <span>⏭ Skip</span>
+        <small>🎬 Ad</small>
+      </button>
+    </div>
+  </section>
+
+  <section id="result-screen" class="screen">
+    <div class="result-card">
+      <div class="trophy">🏆</div>
+      <h2>Round Complete!</h2>
+      <p>Great job tackling some of the rarest trivia on Earth!</p>
+      <div class="result-stats">
+        <div class="r-stat"><strong id="res-score">0</strong><span>Score</span></div>
+        <div class="r-stat"><strong id="res-correct">0/15</strong><span>Correct</span></div>
+        <div class="r-stat"><strong id="res-coins">+0</strong><span>Coins</span></div>
+      </div>
+      <button class="btn-primary" onclick="doubleCoinsWithAd()">🎬 2X Rewards (Watch Ad)</button>
+      <button class="btn-secondary" onclick="shareScore()">📤 Challenge Friends</button>
+      <button class="btn-outline" onclick="goHome()">🏠 Back to Categories</button>
+    </div>
+  </section>
+
+  <div id="bookmarks-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>🔖 Saved Unknown Facts</h3>
+        <button class="icon-btn" onclick="closeModal('bookmarks-modal')">✕</button>
+      </div>
+      <div id="bookmarks-list" class="scroll-list"></div>
+    </div>
+  </div>
+
+  <div id="stats-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>📊 Player Analytics</h3>
+        <button class="icon-btn" onclick="closeModal('stats-modal')">✕</button>
+      </div>
+      <div id="stats-body" class="stats-grid"></div>
+    </div>
+  </div>
+
+  <div class="banner-spacer"></div>
+
+  <script src="data/questions.js"></script>
+  <script src="app.js"></script>
+</body>
+    </html>
+    
