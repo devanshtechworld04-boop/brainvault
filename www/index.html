@@ -5,152 +5,101 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BrainVault: 10K Rare Trivia</title>
   <style>
-    :root {
-      --bg: #0b0f19;
-      --card: #131a2a;
-      --card-2: #1b2438;
-      --primary: #6366f1;
-      --accent: #10b981;
-      --danger: #ef4444;
-      --warn: #f59e0b;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --border: rgba(255, 255, 255, 0.12);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; overflow-x: hidden; }
+    :root { --bg: #0b0f19; --card: #131a2a; --card-2: #1b2438; --primary: #6366f1; --accent: #10b981; --danger: #ef4444; --warn: #f59e0b; --text: #f8fafc; --muted: #94a3b8; --border: rgba(255,255,255,0.12); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
     .app-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #131a2a; position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--border); }
     .brand { display: flex; align-items: center; gap: 10px; }
-    .logo-icon { font-size: 26px; }
-    .brand h1 { font-size: 17px; font-weight: 700; color: #fff; }
+    .brand h1 { font-size: 17px; font-weight: 700; }
     .brand small { font-size: 11px; color: var(--accent); display: block; font-weight: 600; }
     .header-stats { display: flex; align-items: center; gap: 6px; }
-    .pill { background: var(--card-2); padding: 5px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); color: #fff; }
-    .icon-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; }
-    .icon-btn-sm { background: transparent; border: none; font-size: 20px; cursor: pointer; color: #fff; }
-
+    .pill { background: var(--card-2); padding: 5px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); }
+    .icon-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 15px; }
     .screen { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
     .screen.active { display: block; }
-
-    .hero-card { background: linear-gradient(135deg, #1e1b4b, #131a2a); border: 1px solid rgba(99, 102, 241, 0.45); border-radius: 18px; padding: 20px; margin-bottom: 16px; }
-    .badge { display: inline-block; background: rgba(99, 102, 241, 0.25); color: #a5b4fc; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 12px; letter-spacing: 0.6px; margin-bottom: 8px; }
-    .hero-card h2 { font-size: 19px; line-height: 1.35; margin-bottom: 6px; color: #fff; }
+    .hero-card { background: linear-gradient(135deg, #1e1b4b, #131a2a); border: 1px solid rgba(99,102,241,0.45); border-radius: 18px; padding: 20px; margin-bottom: 16px; }
+    .badge { display: inline-block; background: rgba(99,102,241,0.25); color: #a5b4fc; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 12px; margin-bottom: 8px; }
+    .hero-card h2 { font-size: 19px; line-height: 1.35; margin-bottom: 6px; }
     .hero-card p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-
-    .progress-wrap { margin-bottom: 16px; }
     .progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-    #mastery-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.3s; }
-
+    .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    #mastery-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); }
     .btn-primary, .btn-secondary, .btn-outline { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; margin-top: 8px; }
     .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
     .btn-secondary { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
     .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-
-    .native-ad-box { background: var(--card); border: 1px dashed rgba(245, 158, 11, 0.5); border-radius: 14px; padding: 14px; margin-bottom: 18px; cursor: pointer; }
-    .ad-tag { display: inline-block; font-size: 9px; background: rgba(245, 158, 11, 0.2); color: var(--warn); padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-bottom: 6px; }
+    .native-ad-box { background: var(--card); border: 1px dashed rgba(245,158,11,0.5); border-radius: 14px; padding: 14px; margin-bottom: 18px; cursor: pointer; }
+    .ad-tag { display: inline-block; font-size: 9px; background: rgba(245,158,11,0.2); color: var(--warn); padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-bottom: 6px; }
     .native-ad-box strong { font-size: 14px; color: #fcd34d; display: block; margin-bottom: 2px; }
     .native-ad-box p { font-size: 12px; color: var(--muted); }
-
     .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .section-title h3 { font-size: 16px; color: #fff; }
     .text-btn { background: none; border: none; color: #818cf8; font-weight: 600; font-size: 13px; cursor: pointer; }
-
     .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }
     .cat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; cursor: pointer; }
-    .cat-card:active { background: var(--card-2); border-color: var(--primary); }
     .cat-icon { font-size: 24px; margin-bottom: 6px; display: block; }
-    .cat-card h4 { font-size: 14px; margin-bottom: 3px; color: #fff; }
+    .cat-card h4 { font-size: 14px; margin-bottom: 3px; }
     .cat-card span { font-size: 11px; color: var(--accent); font-weight: 600; }
-
     .utility-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .util-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 12px 6px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
-
     .quiz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .q-meta { display: flex; align-items: center; gap: 8px; }
-    .cat-pill { background: rgba(99, 102, 241, 0.25); color: #a5b4fc; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-    #q-counter { font-size: 13px; color: var(--muted); font-weight: 600; }
-    .timer-ring { background: var(--card-2); padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px; border: 1px solid var(--border); color: #fff; }
-    .timer-ring.low { color: var(--danger); border-color: var(--danger); }
-
+    .cat-pill { background: rgba(99,102,241,0.25); color: #a5b4fc; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .timer-ring { background: var(--card-2); padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px; border: 1px solid var(--border); }
     .question-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
-    .q-actions-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .difficulty-tag { font-size: 10px; color: var(--accent); font-weight: 700; letter-spacing: 0.8px; }
-    .question-card h2 { font-size: 17px; line-height: 1.45; font-weight: 600; color: #fff; }
-
+    .question-card h2 { font-size: 17px; line-height: 1.45; margin-top: 8px; }
     .options-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-    .opt-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 14px 16px; border-radius: 12px; text-align: left; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 100%; }
-    .opt-btn.correct { background: rgba(16, 185, 129, 0.25); border-color: var(--accent); color: #6ee7b7; }
-    .opt-btn.wrong { background: rgba(239, 68, 68, 0.25); border-color: var(--danger); color: #fca5a5; }
+    .opt-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 14px 16px; border-radius: 12px; text-align: left; font-size: 14px; cursor: pointer; width: 100%; }
+    .opt-btn.correct { background: rgba(16,185,129,0.25); border-color: var(--accent); color: #6ee7b7; }
+    .opt-btn.wrong { background: rgba(239,68,68,0.25); border-color: var(--danger); color: #fca5a5; }
     .opt-btn.disabled { opacity: 0.3; pointer-events: none; }
-
-    .fact-box { background: rgba(99, 102, 241, 0.18); border: 1px solid rgba(99, 102, 241, 0.5); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .fact-box { background: rgba(99,102,241,0.18); border: 1px solid rgba(99,102,241,0.5); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
     .fact-box.hidden { display: none; }
-    .fact-header { font-size: 13px; color: #a5b4fc; margin-bottom: 5px; }
-    .fact-box p { font-size: 13px; line-height: 1.4; color: #e2e8f0; margin-bottom: 10px; }
+    .fact-box p { font-size: 13px; line-height: 1.4; margin: 6px 0 10px; }
     .fact-actions { display: flex; gap: 8px; }
     .btn-sm { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-2); color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
     .btn-next { background: var(--primary); border: none; }
-
     .lifelines-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .lifeline-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 10px 6px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .lifeline-btn span { font-size: 12px; font-weight: 700; }
+    .lifeline-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 10px 6px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
     .lifeline-btn small { font-size: 11px; color: var(--warn); }
-    .lifeline-btn:disabled { opacity: 0.35; pointer-events: none; }
-
+    .lifeline-btn:disabled { opacity: 0.35; }
     .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px 18px; text-align: center; }
-    .trophy { font-size: 52px; margin-bottom: 8px; }
     .result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
     .r-stat { background: var(--card-2); padding: 12px; border-radius: 12px; }
     .r-stat strong { display: block; font-size: 18px; color: var(--accent); }
-    .r-stat span { font-size: 11px; color: var(--muted); }
-
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: flex; align-items: flex-end; }
     .modal.hidden { display: none; }
-    .modal-content { background: var(--card); width: 100%; max-height: 80vh; border-radius: 20px 20px 0 0; padding: 18px; overflow-y: auto; border-top: 1px solid var(--border); }
-    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; color: #fff; }
-    .scroll-list { display: flex; flex-direction: column; gap: 10px; }
-    .saved-item { background: var(--card-2); padding: 12px; border-radius: 10px; font-size: 13px; color: #fff; }
+    .modal-content { background: var(--card); width: 100%; max-height: 80vh; border-radius: 20px 20px 0 0; padding: 18px; overflow-y: auto; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .saved-item { background: var(--card-2); padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 8px; }
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    #debug-banner { background: #7f1d1d; color: #fecaca; font-size: 11px; padding: 6px 12px; display: none; }
-    .banner-spacer { height: 70px; }
   </style>
 </head>
 <body>
-  <div id="debug-banner"></div>
-
   <header class="app-header">
     <div class="brand">
-      <span class="logo-icon">🧠</span>
+      <span style="font-size:26px">🧠</span>
       <div>
         <h1>BrainVault 10K</h1>
-        <small id="total-db-count">Ready</small>
+        <small id="total-db-count">500 Rare Facts</small>
       </div>
     </div>
     <div class="header-stats">
       <div class="pill">🪙 <span id="coin-count">150</span></div>
       <div class="pill">🔥 <span id="streak-count">1</span></div>
-      <button id="sound-toggle" class="icon-btn" onclick="toggleSound()">🔊</button>
+      <button id="sound-toggle" class="icon-btn">🔊</button>
     </div>
   </header>
 
-  <!-- SCREEN 1: HOME -->
   <main id="home-screen" class="screen active">
     <div class="hero-card">
       <div class="badge">OFFLINE EDITION • RARE FACTS</div>
       <h2>Challenge Your Mind With Facts Almost Nobody Knows</h2>
       <p>Master mind-bending trivia questions across 10 unique categories.</p>
-      <div class="progress-wrap">
-        <div class="progress-info">
-          <span>Mastery Progress</span>
-          <span id="mastery-text">0 Solved</span>
-        </div>
-        <div class="progress-bar"><div id="mastery-fill" style="width: 0%"></div></div>
-      </div>
-      <button class="btn-primary" onclick="startQuiz('ALL')">▶ Quick Play (Random Mix)</button>
+      <div class="progress-info"><span>Mastery Progress</span><span id="mastery-text">0 Solved</span></div>
+      <div class="progress-bar"><div id="mastery-fill" style="width:0%"></div></div>
+      <button id="btn-quick-play" class="btn-primary">▶ Quick Play (Random Mix)</button>
     </div>
 
-    <div id="native-ad-slot" class="native-ad-box" onclick="watchRewardedForCoins()">
+    <div id="native-ad-slot" class="native-ad-box">
       <span class="ad-tag">SPONSORED • TAP FOR +50 🪙</span>
       <strong>Daily Brain Challenge Reward</strong>
       <p>Tap here to watch a quick video ad & claim +50 free lifeline coins!</p>
@@ -158,203 +107,79 @@
 
     <div class="section-title">
       <h3>Explore Categories</h3>
-      <button class="text-btn" onclick="openModal('bookmarks-modal')">🔖 Saved (<span id="bookmark-count">0</span>)</button>
+      <button id="btn-open-bookmarks" class="text-btn">🔖 Saved (<span id="bookmark-count">0</span>)</button>
     </div>
 
     <div id="category-grid" class="category-grid"></div>
 
     <div class="utility-bar">
-      <button class="util-btn" onclick="shareApp()">📤 Share App</button>
-      <button class="util-btn" onclick="openModal('stats-modal')">📊 My Stats</button>
-      <button class="util-btn" onclick="watchRewardedForCoins()">🎬 +50 Coins</button>
+      <button id="btn-share-app" class="util-btn">📤 Share App</button>
+      <button id="btn-open-stats" class="util-btn">📊 My Stats</button>
+      <button id="btn-free-coins" class="util-btn">🎬 +50 Coins</button>
     </div>
   </main>
 
-  <!-- SCREEN 2: QUIZ -->
   <section id="quiz-screen" class="screen">
     <div class="quiz-top">
-      <button class="icon-btn" onclick="exitQuiz()">✕</button>
-      <div class="q-meta">
-        <span id="quiz-cat-badge" class="cat-pill">Science</span>
-        <span id="q-counter">Q 1/15</span>
-      </div>
+      <button id="btn-exit-quiz" class="icon-btn">✕</button>
+      <div><span id="quiz-cat-badge" class="cat-pill">Science</span> <span id="q-counter" style="font-size:13px;color:#94a3b8">Q 1/15</span></div>
       <div class="timer-ring" id="timer-box">⏱ <span id="timer-sec">20</span>s</div>
     </div>
-
     <div class="question-card">
-      <div class="q-actions-top">
-        <span class="difficulty-tag">RARE FACT</span>
-        <button id="bookmark-btn" class="icon-btn-sm" onclick="toggleBookmark()">🔖</button>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;color:#10b981;font-weight:700">RARE FACT</span>
+        <button id="bookmark-btn" style="background:none;border:none;font-size:20px;color:#fff">🔖</button>
       </div>
-      <h2 id="question-text">Loading question...</h2>
+      <h2 id="question-text">Loading...</h2>
     </div>
-
     <div id="options-list" class="options-list"></div>
-
     <div id="fact-box" class="fact-box hidden">
-      <div class="fact-header">💡 <strong>Did You Know?</strong></div>
+      <strong style="color:#a5b4fc;font-size:13px">💡 Did You Know?</strong>
       <p id="fact-explanation"></p>
       <div class="fact-actions">
-        <button class="btn-sm" onclick="shareCurrentFact()">📤 Share Fact</button>
-        <button class="btn-sm btn-next" onclick="nextQuestion()">Next Question ➔</button>
+        <button id="btn-share-fact" class="btn-sm">📤 Share Fact</button>
+        <button id="btn-next-q" class="btn-sm btn-next">Next Question ➔</button>
       </div>
     </div>
-
     <div class="lifelines-bar">
-      <button class="lifeline-btn" id="ll-5050" onclick="use5050()">
-        <span>✂️ 50:50</span>
-        <small>25 🪙</small>
-      </button>
-      <button class="lifeline-btn" id="ll-time" onclick="useExtraTime()">
-        <span>⏳ +15s</span>
-        <small>20 🪙</small>
-      </button>
-      <button class="lifeline-btn" id="ll-skip" onclick="useSkipAd()">
-        <span>⏭ Skip</span>
-        <small>🎬 Ad</small>
-      </button>
+      <button class="lifeline-btn" id="ll-5050"><span>✂️ 50:50</span><small>25 🪙</small></button>
+      <button class="lifeline-btn" id="ll-time"><span>⏳ +15s</span><small>20 🪙</small></button>
+      <button class="lifeline-btn" id="ll-skip"><span>⏭ Skip</span><small>🎬 Ad</small></button>
     </div>
   </section>
 
-  <!-- SCREEN 3: RESULT -->
   <section id="result-screen" class="screen">
     <div class="result-card">
-      <div class="trophy">🏆</div>
+      <div style="font-size:52px">🏆</div>
       <h2>Round Complete!</h2>
-      <p>You outperformed 84% of trivia players!</p>
+      <p style="color:#94a3b8;font-size:13px">You outperformed 84% of trivia players!</p>
       <div class="result-stats">
-        <div class="r-stat"><strong id="res-score">0</strong><span>Score</span></div>
-        <div class="r-stat"><strong id="res-correct">0/15</strong><span>Correct</span></div>
-        <div class="r-stat"><strong id="res-coins">+0</strong><span>Coins</span></div>
+        <div class="r-stat"><strong id="res-score">0</strong><span style="font-size:11px;color:#94a3b8">Score</span></div>
+        <div class="r-stat"><strong id="res-correct">0/15</strong><span style="font-size:11px;color:#94a3b8">Correct</span></div>
+        <div class="r-stat"><strong id="res-coins">+0</strong><span style="font-size:11px;color:#94a3b8">Coins</span></div>
       </div>
-      <button class="btn-primary" onclick="doubleCoinsWithAd()">🎬 2X Rewards (Watch Ad)</button>
-      <button class="btn-secondary" onclick="shareScore()">📤 Challenge Friends</button>
-      <button class="btn-outline" onclick="goHome()">🏠 Back to Categories</button>
+      <button id="btn-double-coins" class="btn-primary">🎬 2X Rewards (Watch Ad)</button>
+      <button id="btn-share-score" class="btn-secondary">📤 Challenge Friends</button>
+      <button id="btn-go-home" class="btn-outline">🏠 Back to Categories</button>
     </div>
   </section>
 
-  <!-- MODALS -->
   <div id="bookmarks-modal" class="modal hidden">
     <div class="modal-content">
-      <div class="modal-head">
-        <h3>🔖 Saved Unknown Facts</h3>
-        <button class="icon-btn" onclick="closeModal('bookmarks-modal')">✕</button>
-      </div>
-      <div id="bookmarks-list" class="scroll-list"></div>
+      <div class="modal-head"><h3>🔖 Saved Unknown Facts</h3><button id="close-bookmarks" class="icon-btn">✕</button></div>
+      <div id="bookmarks-list"></div>
     </div>
   </div>
 
   <div id="stats-modal" class="modal hidden">
     <div class="modal-content">
-      <div class="modal-head">
-        <h3>📊 Player Analytics</h3>
-        <button class="icon-btn" onclick="closeModal('stats-modal')">✕</button>
-      </div>
+      <div class="modal-head"><h3>📊 Player Analytics</h3><button id="close-stats" class="icon-btn">✕</button></div>
       <div id="stats-body" class="stats-grid"></div>
     </div>
   </div>
 
-  <div class="banner-spacer"></div>
-
-  <!-- Error Catcher BEFORE external script -->
-  <script>
-    window.onerror = function(msg, url, line) {
-      var b = document.getElementById("debug-banner");
-      if (b) {
-        b.style.display = "block";
-        b.textContent = "DB Note: " + msg + " (Line " + line + ") - Using backup bank";
-      }
-      return false;
-    };
-  </script>
-
-  <!-- External 500 Questions File -->
   <script src="data/questions.js"></script>
-
-  <!-- Core App Logic -->
-  <script>
-    var DEFAULT_CATS = [
-      { id: "History", name: "Lost History", icon: "🏛️" },
-      { id: "Science", name: "Weird Science", icon: "🧬" },
-      { id: "Space", name: "Deep Cosmos", icon: "🪐" },
-      { id: "Psychology", name: "Dark Psychology", icon: "🧠" },
-      { id: "Geography", name: "Hidden Earth", icon: "🌍" },
-      { id: "Inventions", name: "Forgotten Tech", icon: "⚙️" },
-      { id: "Nature", name: "Bizarre Nature", icon: "🦑" },
-      { id: "Culture", name: "Secret Culture", icon: "🎭" },
-      { id: "Records", name: "Impossible Feats", icon: "🏅" },
-      { id: "Mysteries", name: "Unsolved Files", icon: "🕵️" }
-    ];
-
-    var BACKUP_QUESTIONS = [
-      { id: 1, cat: "History", q: "Which Roman emperor appointed his horse Incitatus as a priest?", options: ["Caligula", "Nero", "Commodus", "Elagabalus"], ans: 0, fact: "Caligula gave Incitatus a marble stable and ivory manger." },
-      { id: 2, cat: "Science", q: "What is the only letter absent from the Periodic Table?", options: ["Q", "J", "X", "Z"], ans: 1, fact: "The letter J never appears in any element symbol or name." },
-      { id: 3, cat: "Space", q: "Which planet has a day longer than its entire year?", options: ["Mercury", "Venus", "Neptune", "Uranus"], ans: 1, fact: "Venus takes 243 Earth days to rotate once, and 225 days to orbit the Sun." },
-      { id: 4, cat: "Psychology", q: "What is remembering unfinished tasks better than completed ones called?", options: ["Halo Effect", "Zeigarnik Effect", "Stroop Effect", "Capgras Delusion"], ans: 1, fact: "Named after psychologist Bluma Zeigarnik." },
-      { id: 5, cat: "Geography", q: "Which country contains more lakes than the rest of the world combined?", options: ["Finland", "Russia", "Canada", "Sweden"], ans: 2, fact: "Canada holds over 2 million lakes." },
-      { id: 6, cat: "Inventions", q: "What toy was originally invented in 1899 as a wallpaper cleaner?", options: ["Silly Putty", "Play-Doh", "Lego", "Slinky"], ans: 1, fact: "Play-Doh originally cleaned coal soot off wallpaper." },
-      { id: 7, cat: "Nature", q: "How many brains and hearts does an octopus possess?", options: ["1 brain, 3 hearts", "9 brains, 3 hearts", "3 brains, 2 hearts", "9 brains, 1 heart"], ans: 1, fact: "One central brain plus a mini-brain in each of its 8 arms." },
-      { id: 8, cat: "Culture", q: "In Switzerland, it is illegal to own just one of which social animal?", options: ["Parrot", "Guinea pig", "Rabbit", "Ferret"], ans: 1, fact: "Swiss law protects guinea pigs from loneliness." },
-      { id: 9, cat: "Records", q: "How long did the shortest war in history (Anglo-Zanzibar War) last?", options: ["2 hours", "38 minutes", "1 day", "12 minutes"], ans: 1, fact: "Fought on August 27, 1896." },
-      { id: 10, cat: "Mysteries", q: "What is the undeciphered 15th-century illustrated book called?", options: ["Codex Gigas", "Voynich Manuscript", "Rohonc Codex", "Book of Soyga"], ans: 1, fact: "No cryptographer has ever decoded its script." }
-    ];
-
-    function getCats() {
-      return (typeof CATEGORIES !== "undefined" && Array.isArray(CATEGORIES)) ? CATEGORIES : DEFAULT_CATS;
-    }
-
-    function getBank() {
-      if (typeof QUESTION_BANK !== "undefined" && Array.isArray(QUESTION_BANK) && QUESTION_BANK.length > 0) {
-        return QUESTION_BANK;
-      }
-      return BACKUP_QUESTIONS;
-    }
-
-    // ==========================================
-    // ADMOB INTEGRATION (GOOGLE TEST IDS FOR VERIFICATION)
-    // ==========================================
-    // Note: Once verified, replace with your live IDs & set isTesting: false before Play Store upload
-    var AD_IDS = {
-      banner: "ca-app-pub-3940256099942544/6300978111",
-      interstitial: "ca-app-pub-3940256099942544/1033173712",
-      rewarded: "ca-app-pub-3940256099942544/5224354917"
-    };
-
-    var AdMob = null;
-    var Share = null;
-
-    async function setupAds() {
-      try {
-        if (window.Capacitor && window.Capacitor.Plugins) {
-          AdMob = window.Capacitor.Plugins.AdMob;
-          Share = window.Capacitor.Plugins.Share;
-          if (AdMob) {
-            await AdMob.initialize({ initializeForTesting: true });
-            await AdMob.showBanner({
-              adId: AD_IDS.banner,
-              adSize: "ADAPTIVE_BANNER",
-              position: "BOTTOM_CENTER",
-              margin: 0,
-              isTesting: true
-            });
-            await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: true });
-            await AdMob.prepareRewardVideoAd({ adId: AD_IDS.rewarded, isTesting: true });
-          }
-        }
-      } catch (err) {
-        console.log("AdMob setup:", err);
-      }
-    }
-
-    async function showInterstitial() {
-      if (!AdMob) return;
-      try {
-        await AdMob.showInterstitial();
-        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: true });
-      } catch (e) {}
-    }
-
-    async function showRewarded(callback) {
-      if (!AdMob) {
-        callback();
-        re
+  <script src="app.js"></script>
+</body>
+  </html>
+      
