@@ -1,399 +1,270 @@
-const AD_CONFIG = {
-  appOpen: "ca-app-pub-5317235020851620/1880905256",
-  banner: "ca-app-pub-5317235020851620/2289913450",
-  interstitial: "ca-app-pub-5317235020851620/6967525065",
-  rewarded: "ca-app-pub-5317235020851620/6584381682",
-  rewardedInterstitial: "ca-app-pub-5317235020851620/9402116716",
-  native: "ca-app-pub-5317235020851620/3716731101",
-  isTesting: true // Keep true for APK testing; change to false before Play Store upload
-};
+document.addEventListener("DOMContentLoaded", function () {
+  var CATS = [
+    { id: "History", name: "Lost History", icon: "🏛️" },
+    { id: "Science", name: "Weird Science", icon: "🧬" },
+    { id: "Space", name: "Deep Cosmos", icon: "🪐" },
+    { id: "Psychology", name: "Dark Psychology", icon: "🧠" },
+    { id: "Geography", name: "Hidden Earth", icon: "🌍" },
+    { id: "Inventions", name: "Forgotten Tech", icon: "⚙️" },
+    { id: "Nature", name: "Bizarre Nature", icon: "🦑" },
+    { id: "Culture", name: "Secret Culture", icon: "🎭" },
+    { id: "Records", name: "Impossible Feats", icon: "🏅" },
+    { id: "Mysteries", name: "Unsolved Files", icon: "🕵️" }
+  ];
 
-let AdMobPlugin = null;
-let SharePlugin = null;
+  var FALLBACK = [
+    { id: 1, cat: "History", q: "Which Roman emperor appointed his horse Incitatus as a priest?", options: ["Caligula", "Nero", "Commodus", "Elagabalus"], ans: 0, fact: "Caligula gave Incitatus a marble stable and ivory manger." },
+    { id: 2, cat: "Science", q: "What is the only letter absent from the Periodic Table?", options: ["Q", "J", "X", "Z"], ans: 1, fact: "The letter J never appears in any element symbol or name." },
+    { id: 3, cat: "Space", q: "Which planet has a day longer than its entire year?", options: ["Mercury", "Venus", "Neptune", "Uranus"], ans: 1, fact: "Venus takes 243 Earth days to rotate once, and 225 days to orbit the Sun." }
+  ];
 
-async function initNativePlugins() {
-  try {
-    if (window.Capacitor && window.Capacitor.Plugins) {
-      AdMobPlugin = window.Capacitor.Plugins.AdMob;
-      SharePlugin = window.Capacitor.Plugins.Share;
+  var BANK = (typeof QUESTION_BANK !== "undefined" && Array.isArray(QUESTION_BANK) && QUESTION_BANK.length > 0)
+    ? QUESTION_BANK
+    : FALLBACK;
 
-      if (AdMobPlugin) {
-        await AdMobPlugin.initialize({ initializeForTesting: AD_CONFIG.isTesting });
-        showBannerAd();
-        prepareInterstitial();
-        prepareRewarded();
-      }
+  // AdMob Setup (Google Official Test IDs for Instant Verification)
+  var AdMob = (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins.AdMob : null;
+  var Share = (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins.Share : null;
+
+  var TEST_IDS = {
+    banner: "ca-app-pub-3940256099942544/6300978111",
+    interstitial: "ca-app-pub-3940256099942544/1033173712",
+    rewarded: "ca-app-pub-3940256099942544/5224354917"
+  };
+
+  async function initAds() {
+    if (!AdMob) return;
+    try {
+      await AdMob.initialize({ initializeForTesting: true });
+      await AdMob.showBanner({
+        adId: TEST_IDS.banner,
+        adSize: "ADAPTIVE_BANNER",
+        position: "BOTTOM_CENTER",
+        margin: 0,
+        isTesting: true
+      });
+      await AdMob.prepareInterstitial({ adId: TEST_IDS.interstitial, isTesting: true });
+      await AdMob.prepareRewardVideoAd({ adId: TEST_IDS.rewarded, isTesting: true });
+    } catch (e) {}
+  }
+
+  async function showInterstitial() {
+    if (!AdMob) return;
+    try {
+      await AdMob.showInterstitial();
+      await AdMob.prepareInterstitial({ adId: TEST_IDS.interstitial, isTesting: true });
+    } catch (e) {}
+  }
+
+  async function showRewarded(onDone) {
+    if (!AdMob) return onDone();
+    try {
+      var r = await AdMob.showRewardVideoAd();
+      if (r) onDone();
+      await AdMob.prepareRewardVideoAd({ adId: TEST_IDS.rewarded, isTesting: true });
+    } catch (e) {
+      onDone();
     }
-  } catch (e) {
-    console.log("Browser preview mode");
   }
-}
 
-async function showBannerAd() {
-  if (!AdMobPlugin) return;
+  // State
+  var state = { coins: 150, streak: 1, solvedIds: [], bookmarks: [], totalPlayed: 0, totalCorrect: 0, sound: true };
   try {
-    await AdMobPlugin.showBanner({
-      adId: AD_CONFIG.banner,
-      adSize: "ADAPTIVE_BANNER",
-      position: "BOTTOM_CENTER",
-      margin: 0,
-      isTesting: AD_CONFIG.isTesting
+    var saved = JSON.parse(localStorage.getItem("bv_10k_state"));
+    if (saved) state = Object.assign(state, saved);
+  } catch (e) {}
+
+  function saveState() {
+    try { localStorage.setItem("bv_10k_state", JSON.stringify(state)); } catch (e) {}
+    refreshUI();
+  }
+
+  function refreshUI() {
+    document.getElementById("total-db-count").textContent = BANK.length + " Rare Facts Ready";
+    document.getElementById("coin-count").textContent = state.coins;
+    document.getElementById("streak-count").textContent = state.streak;
+    document.getElementById("bookmark-count").textContent = state.bookmarks.length;
+    document.getElementById("sound-toggle").textContent = state.sound ? "🔊" : "🔇";
+    document.getElementById("mastery-text").textContent = state.solvedIds.length + " / " + BANK.length + " Solved";
+    document.getElementById("mastery-fill").style.width = Math.min(100, (state.solvedIds.length / BANK.length) * 100) + "%";
+  }
+
+  function renderCategories() {
+    var grid = document.getElementById("category-grid");
+    grid.innerHTML = "";
+    CATS.forEach(function (c) {
+      var cnt = BANK.filter(function (q) { return q.cat === c.id; }).length;
+      var card = document.createElement("div");
+      card.className = "cat-card";
+      card.innerHTML = '<span class="cat-icon">' + c.icon + '</span><h4>' + c.name + '</h4><span>' + cnt + ' Rare Facts</span>';
+      card.addEventListener("click", function () { startQuiz(c.id); });
+      grid.appendChild(card);
     });
-  } catch (e) {}
-}
-
-async function prepareInterstitial() {
-  if (!AdMobPlugin) return;
-  try {
-    await AdMobPlugin.prepareInterstitial({
-      adId: AD_CONFIG.interstitial,
-      isTesting: AD_CONFIG.isTesting
-    });
-  } catch (e) {}
-}
-
-async function showInterstitialAd() {
-  if (!AdMobPlugin) return;
-  try {
-    await AdMobPlugin.showInterstitial();
-    prepareInterstitial();
-  } catch (e) {}
-}
-
-async function prepareRewarded() {
-  if (!AdMobPlugin) return;
-  try {
-    await AdMobPlugin.prepareRewardVideoAd({
-      adId: AD_CONFIG.rewarded,
-      isTesting: AD_CONFIG.isTesting
-    });
-  } catch (e) {}
-}
-
-async function triggerRewardedAd(onRewardCallback) {
-  if (!AdMobPlugin) {
-    onRewardCallback();
-    return;
-  }
-  try {
-    const reward = await AdMobPlugin.showRewardVideoAd();
-    if (reward) onRewardCallback();
-    prepareRewarded();
-  } catch (e) {
-    alert("Ad loading... try again in 3 seconds.");
-    prepareRewarded();
-  }
-}
-
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playTone(type) {
-  if (!state.sound) return;
-  try {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    if (type === "correct") {
-      osc.frequency.setValueAtTime(520, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
-    } else if (type === "wrong") {
-      osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-      osc.frequency.linearRampToValueAtTime(130, audioCtx.currentTime + 0.25);
-    } else {
-      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-    }
-    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.25);
-  } catch (e) {}
-}
-
-let state = JSON.parse(localStorage.getItem("bv_10k_state")) || {
-  coins: 150,
-  streak: 1,
-  solvedIds: [],
-  bookmarks: [],
-  totalPlayed: 0,
-  totalCorrect: 0,
-  sound: true
-};
-
-function saveState() {
-  localStorage.setItem("bv_10k_state", JSON.stringify(state));
-  updateHeaderUI();
-}
-
-function updateHeaderUI() {
-  document.getElementById("coin-count").textContent = state.coins;
-  document.getElementById("streak-count").textContent = state.streak;
-  document.getElementById("bookmark-count").textContent = state.bookmarks.length;
-  document.getElementById("sound-toggle").textContent = state.sound ? "🔊" : "🔇";
-
-  const solvedCount = state.solvedIds.length;
-  const totalQ = QUESTION_BANK.length || 500;
-  document.getElementById("mastery-text").textContent = `${solvedCount} / ${totalQ} Solved`;
-  const pct = Math.min(100, (solvedCount / totalQ) * 100);
-  document.getElementById("mastery-fill").style.width = `${pct}%`;
-}
-
-let currentSession = [];
-let currentIndex = 0;
-let sessionScore = 0;
-let sessionCorrect = 0;
-let timerInterval = null;
-let timeLeft = 20;
-let answered = false;
-
-function renderCategories() {
-  const grid = document.getElementById("category-grid");
-  grid.innerHTML = CATEGORIES.map(cat => {
-    const count = QUESTION_BANK.filter(q => q.cat === cat.id).length;
-    return `
-      <div class="cat-card" onclick="startQuiz('${cat.id}')">
-        <span class="cat-icon">${cat.icon}</span>
-        <h4>${cat.name}</h4>
-        <span>${count} Rare Facts</span>
-      </div>
-    `;
-  }).join("");
-}
-
-function startQuiz(category) {
-  playTone("click");
-  let pool = category === "ALL"
-    ? [...QUESTION_BANK]
-    : QUESTION_BANK.filter(q => q.cat === category);
-
-  if (pool.length === 0) pool = [...QUESTION_BANK];
-
-  pool.sort(() => Math.random() - 0.5);
-  pool.sort((a, b) => state.solvedIds.includes(a.id) - state.solvedIds.includes(b.id));
-  currentSession = pool.slice(0, 15);
-  currentIndex = 0;
-  sessionScore = 0;
-  sessionCorrect = 0;
-
-  switchScreen("quiz-screen");
-  loadQuestion();
-}
-
-function loadQuestion() {
-  answered = false;
-  clearInterval(timerInterval);
-  timeLeft = 20;
-
-  const q = currentSession[currentIndex];
-  document.getElementById("quiz-cat-badge").textContent = q.cat;
-  document.getElementById("q-counter").textContent = `Q ${currentIndex + 1}/${currentSession.length}`;
-  document.getElementById("question-text").textContent = q.q;
-  document.getElementById("fact-box").classList.add("hidden");
-
-  const isSaved = state.bookmarks.includes(q.id);
-  document.getElementById("bookmark-btn").textContent = isSaved ? "★" : "🔖";
-
-  document.getElementById("ll-5050").disabled = false;
-  document.getElementById("ll-time").disabled = false;
-
-  const optContainer = document.getElementById("options-list");
-  const letters = ["A", "B", "C", "D"];
-  optContainer.innerHTML = q.options.map((opt, idx) => `
-    <button class="opt-btn" id="opt-${idx}" onclick="selectAnswer(${idx})">
-      <strong>${letters[idx]}.</strong> <span>${opt}</span>
-    </button>
-  `).join("");
-
-  startTimer();
-}
-
-function startTimer() {
-  const timerEl = document.getElementById("timer-sec");
-  const timerBox = document.getElementById("timer-box");
-  timerEl.textContent = timeLeft;
-  timerBox.classList.remove("low");
-
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    timerEl.textContent = timeLeft;
-    if (timeLeft <= 5) timerBox.classList.add("low");
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      selectAnswer(-1);
-    }
-  }, 1000);
-}
-
-function selectAnswer(selectedIndex) {
-  if (answered) return;
-  answered = true;
-  clearInterval(timerInterval);
-
-  const q = currentSession[currentIndex];
-  const buttons = document.querySelectorAll(".opt-btn");
-  buttons.forEach(btn => (btn.style.pointerEvents = "none"));
-
-  state.totalPlayed++;
-
-  if (selectedIndex === q.ans) {
-    playTone("correct");
-    buttons[selectedIndex].classList.add("correct");
-    sessionScore += 10 + timeLeft;
-    sessionCorrect++;
-    state.totalCorrect++;
-    state.coins += 5;
-    if (!state.solvedIds.includes(q.id)) state.solvedIds.push(q.id);
-  } else {
-    playTone("wrong");
-    if (selectedIndex >= 0) buttons[selectedIndex].classList.add("wrong");
-    buttons[q.ans].classList.add("correct");
   }
 
-  saveState();
-  document.getElementById("fact-explanation").textContent = q.fact;
-  document.getElementById("fact-box").classList.remove("hidden");
-}
+  var session = [], idx = 0, score = 0, correctCnt = 0, timer = null, sec = 20, answered = false;
 
-function nextQuestion() {
-  currentIndex++;
-  if (currentIndex === 7) {
-    showInterstitialAd();
+  function switchScreen(id) {
+    document.querySelectorAll(".screen").forEach(function (s) { s.classList.remove("active"); });
+    document.getElementById(id).classList.add("active");
   }
-  if (currentIndex < currentSession.length) {
+
+  function startQuiz(cat) {
+    var pool = (cat === "ALL") ? BANK.slice() : BANK.filter(function (q) { return q.cat === cat; });
+    if (pool.length === 0) pool = BANK.slice();
+    pool.sort(function () { return Math.random() - 0.5; });
+    session = pool.slice(0, 15);
+    idx = 0; score = 0; correctCnt = 0;
+    switchScreen("quiz-screen");
     loadQuestion();
-  } else {
-    finishQuiz();
   }
-}
 
-function finishQuiz() {
-  showInterstitialAd();
-  const earnedCoins = sessionCorrect * 5;
-  document.getElementById("res-score").textContent = sessionScore;
-  document.getElementById("res-correct").textContent = `${sessionCorrect}/${currentSession.length}`;
-  document.getElementById("res-coins").textContent = `+${earnedCoins}`;
-  switchScreen("result-screen");
-}
+  function loadQuestion() {
+    answered = false;
+    clearInterval(timer);
+    sec = 20;
+    var q = session[idx];
+    document.getElementById("quiz-cat-badge").textContent = q.cat;
+    document.getElementById("q-counter").textContent = "Q " + (idx + 1) + "/" + session.length;
+    document.getElementById("question-text").textContent = q.q;
+    document.getElementById("fact-box").classList.add("hidden");
+    document.getElementById("bookmark-btn").textContent = state.bookmarks.indexOf(q.id) > -1 ? "★" : "🔖";
+    document.getElementById("ll-5050").disabled = false;
+    document.getElementById("ll-time").disabled = false;
 
-function use5050() {
-  if (answered || state.coins < 25) return alert("Need 25 coins!");
-  state.coins -= 25;
-  saveState();
-  document.getElementById("ll-5050").disabled = true;
+    var list = document.getElementById("options-list");
+    list.innerHTML = "";
+    var letters = ["A", "B", "C", "D"];
+    q.options.forEach(function (opt, i) {
+      var btn = document.createElement("button");
+      btn.className = "opt-btn";
+      btn.id = "opt-" + i;
+      btn.innerHTML = "<strong>" + letters[i] + ".</strong> " + opt;
+      btn.addEventListener("click", function () { pickAnswer(i); });
+      list.appendChild(btn);
+    });
 
-  const q = currentSession[currentIndex];
-  let wrongIndices = [0, 1, 2, 3].filter(i => i !== q.ans);
-  wrongIndices.sort(() => Math.random() - 0.5);
-  document.getElementById(`opt-${wrongIndices[0]}`).classList.add("disabled");
-  document.getElementById(`opt-${wrongIndices[1]}`).classList.add("disabled");
-}
+    document.getElementById("timer-sec").textContent = sec;
+    timer = setInterval(function () {
+      sec--;
+      document.getElementById("timer-sec").textContent = sec;
+      if (sec <= 0) { clearInterval(timer); pickAnswer(-1); }
+    }, 1000);
+  }
 
-function useExtraTime() {
-  if (answered || state.coins < 20) return alert("Need 20 coins!");
-  state.coins -= 20;
-  saveState();
-  timeLeft += 15;
-  document.getElementById("timer-sec").textContent = timeLeft;
-  document.getElementById("ll-time").disabled = true;
-}
-
-function useSkipAd() {
-  if (answered) return;
-  triggerRewardedAd(() => {
-    nextQuestion();
-  });
-}
-
-function watchRewardedForCoins() {
-  triggerRewardedAd(() => {
-    state.coins += 50;
-    saveState();
-    alert("🎉 +50 Coins Added!");
-  });
-}
-
-function doubleCoinsWithAd() {
-  triggerRewardedAd(() => {
-    const bonus = sessionCorrect * 5;
-    state.coins += bonus;
-    saveState();
-    alert(`🎉 Doubled! +${bonus} Extra Coins Added!`);
-  });
-}
-
-async function shareText(title, text) {
-  try {
-    if (SharePlugin) {
-      await SharePlugin.share({ title, text, dialogTitle: title });
-    } else if (navigator.share) {
-      await navigator.share({ title, text });
+  function pickAnswer(choice) {
+    if (answered) return;
+    answered = true;
+    clearInterval(timer);
+    var q = session[idx];
+    document.querySelectorAll(".opt-btn").forEach(function (b) { b.style.pointerEvents = "none"; });
+    state.totalPlayed++;
+    if (choice === q.ans) {
+      document.getElementById("opt-" + choice).classList.add("correct");
+      score += 10 + sec;
+      correctCnt++;
+      state.totalCorrect++;
+      state.coins += 5;
+      if (state.solvedIds.indexOf(q.id) === -1) state.solvedIds.push(q.id);
     } else {
-      navigator.clipboard.writeText(text);
-      alert("Copied to clipboard to share!");
+      if (choice >= 0) document.getElementById("opt-" + choice).classList.add("wrong");
+      document.getElementById("opt-" + q.ans).classList.add("correct");
     }
-  } catch (e) {}
-}
-
-function shareApp() {
-  shareText(
-    "BrainVault 10K Quiz",
-    "🧠 Think you're smart? Try BrainVault 10K — rare & unknown English trivia facts! Download now!"
-  );
-}
-
-function shareCurrentFact() {
-  const q = currentSession[currentIndex];
-  shareText("Mind-Blowing Fact!", `🤯 Did you know?\n\nQ: ${q.q}\nAnswer: ${q.options[q.ans]}\n\n💡 ${q.fact}\n\n— Shared via BrainVault 10K App`);
-}
-
-function shareScore() {
-  shareText("My Trivia Score", `🏆 I scored ${sessionScore} pts (${sessionCorrect}/${currentSession.length} correct) on BrainVault 10K Rare Trivia! Can you beat me?`);
-}
-
-function toggleBookmark() {
-  const q = currentSession[currentIndex];
-  const idx = state.bookmarks.indexOf(q.id);
-  if (idx > -1) state.bookmarks.splice(idx, 1);
-  else state.bookmarks.push(q.id);
-  saveState();
-  document.getElementById("bookmark-btn").textContent = idx > -1 ? "🔖" : "★";
-}
-
-function openModal(id) {
-  if (id === "bookmarks-modal") {
-    const list = document.getElementById("bookmarks-list");
-    const saved = QUESTION_BANK.filter(q => state.bookmarks.includes(q.id));
-    list.innerHTML = saved.length
-      ? saved.map(q => `<div class="saved-item"><strong>${q.q}</strong><br><small style="color:#10b981">✔ ${q.options[q.ans]}</small></div>`).join("")
-      : "<p style='color:#94a3b8'>No saved facts yet. Tap 🔖 during a quiz to save!</p>";
+    saveState();
+    document.getElementById("fact-explanation").textContent = q.fact;
+    document.getElementById("fact-box").classList.remove("hidden");
   }
-  if (id === "stats-modal") {
-    const acc = state.totalPlayed ? Math.round((state.totalCorrect / state.totalPlayed) * 100) : 0;
-    document.getElementById("stats-body").innerHTML = `
-      <div class="r-stat"><strong>${state.totalPlayed}</strong><span>Answered</span></div>
-      <div class="r-stat"><strong>${acc}%</strong><span>Accuracy</span></div>
-      <div class="r-stat"><strong>${state.solvedIds.length}</strong><span>Unique Facts</span></div>
-      <div class="r-stat"><strong>${state.streak} Days</strong><span>Streak</span></div>
-    `;
+
+  // Bind All Buttons Cleanly
+  document.getElementById("btn-quick-play").addEventListener("click", function () { startQuiz("ALL"); });
+  document.getElementById("btn-exit-quiz").addEventListener("click", function () { clearInterval(timer); switchScreen("home-screen"); refreshUI(); });
+  document.getElementById("btn-go-home").addEventListener("click", function () { switchScreen("home-screen"); refreshUI(); });
+  document.getElementById("sound-toggle").addEventListener("click", function () { state.sound = !state.sound; saveState(); });
+
+  document.getElementById("btn-next-q").addEventListener("click", function () {
+    idx++;
+    if (idx === 7) showInterstitial();
+    if (idx < session.length) loadQuestion();
+    else {
+      showInterstitial();
+      document.getElementById("res-score").textContent = score;
+      document.getElementById("res-correct").textContent = correctCnt + "/" + session.length;
+      document.getElementById("res-coins").textContent = "+" + (correctCnt * 5);
+      switchScreen("result-screen");
+    }
+  });
+
+  document.getElementById("ll-5050").addEventListener("click", function () {
+    if (answered || state.coins < 25) return alert("Need 25 coins!");
+    state.coins -= 25; saveState();
+    this.disabled = true;
+    var q = session[idx];
+    var wrong = [0, 1, 2, 3].filter(function (i) { return i !== q.ans; }).sort(function () { return Math.random() - 0.5; });
+    document.getElementById("opt-" + wrong[0]).classList.add("disabled");
+    document.getElementById("opt-" + wrong[1]).classList.add("disabled");
+  });
+
+  document.getElementById("ll-time").addEventListener("click", function () {
+    if (answered || state.coins < 20) return alert("Need 20 coins!");
+    state.coins -= 20; saveState();
+    sec += 15;
+    document.getElementById("timer-sec").textContent = sec;
+    this.disabled = true;
+  });
+
+  document.getElementById("ll-skip").addEventListener("click", function () {
+    if (!answered) showRewarded(function () { document.getElementById("btn-next-q").click(); });
+  });
+
+  function addFreeCoins() {
+    showRewarded(function () { state.coins += 50; saveState(); alert("🎉 +50 Coins Added!"); });
   }
-  document.getElementById(id).classList.remove("hidden");
-}
+  document.getElementById("btn-free-coins").addEventListener("click", addFreeCoins);
+  document.getElementById("native-ad-slot").addEventListener("click", addFreeCoins);
+  document.getElementById("btn-double-coins").addEventListener("click", function () {
+    showRewarded(function () { var b = correctCnt * 5; state.coins += b; saveState(); alert("🎉 +" + b + " Extra Coins!"); });
+  });
 
-function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
-function switchScreen(id) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
-function exitQuiz() { clearInterval(timerInterval); goHome(); }
-function goHome() { switchScreen("home-screen"); updateHeaderUI(); }
+  function doShare(title, text) {
+    if (Share) Share.share({ title: title, text: text, dialogTitle: title });
+    else if (navigator.share) navigator.share({ title: title, text: text });
+    else alert(text);
+  }
+  document.getElementById("btn-share-app").addEventListener("click", function () { doShare("BrainVault 10K", "🧠 Try BrainVault 10K — rare & unknown English trivia facts!"); });
+  document.getElementById("btn-share-fact").addEventListener("click", function () { var q = session[idx]; doShare("Mind-Blowing Fact", "🤯 " + q.q + "\n✔ " + q.options[q.ans] + "\n💡 " + q.fact); });
+  document.getElementById("btn-share-score").addEventListener("click", function () { doShare("My Score", "🏆 I scored " + score + " pts on BrainVault 10K!"); });
 
-document.getElementById("sound-toggle").onclick = () => {
-  state.sound = !state.sound;
-  saveState();
-};
+  document.getElementById("bookmark-btn").addEventListener("click", function () {
+    var q = session[idx];
+    var i = state.bookmarks.indexOf(q.id);
+    if (i > -1) state.bookmarks.splice(i, 1); else state.bookmarks.push(q.id);
+    saveState();
+    this.textContent = i > -1 ? "🔖" : "★";
+  });
 
-window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btn-open-bookmarks").addEventListener("click", function () {
+    var saved = BANK.filter(function (q) { return state.bookmarks.indexOf(q.id) > -1; });
+    document.getElementById("bookmarks-list").innerHTML = saved.length
+      ? saved.map(function (q) { return '<div class="saved-item"><strong>' + q.q + '</strong><br><small style="color:#10b981">✔ ' + q.options[q.ans] + '</small></div>'; }).join("")
+      : "<p style='color:#94a3b8'>No saved facts yet!</p>";
+    document.getElementById("bookmarks-modal").classList.remove("hidden");
+  });
+  document.getElementById("close-bookmarks").addEventListener("click", function () { document.getElementById("bookmarks-modal").classList.add("hidden"); });
+
+  document.getElementById("btn-open-stats").addEventListener("click", function () {
+    var acc = state.totalPlayed ? Math.round((state.totalCorrect / state.totalPlayed) * 100) : 0;
+    document.getElementById("stats-body").innerHTML =
+      '<div class="r-stat"><strong>' + state.totalPlayed + '</strong><span>Answered</span></div>' +
+      '<div class="r-stat"><strong>' + acc + '%</strong><span>Accuracy</span></div>' +
+      '<div class="r-stat"><strong>' + state.solvedIds.length + '</strong><span>Unique Facts</span></div>' +
+      '<div class="r-stat"><strong>' + state.streak + ' Days</strong><span>Streak</span></div>';
+    document.getElementById("stats-modal").classList.remove("hidden");
+  });
+  document.getElementById("close-stats").addEventListener("click", function () { document.getElementById("stats-modal").classList.add("hidden"); });
+
+  // Initialize Everything
   renderCategories();
-  updateHeaderUI();
-  initNativePlugins();
+  refreshUI();
+  initAds();
 });
-      
+                                    
