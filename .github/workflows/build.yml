@@ -1,4 +1,4 @@
-name: Auto Generate & Build BrainVault APK
+name: Build BrainVault Signed APK
 
 on:
   push:
@@ -24,241 +24,35 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Generate Clean App Files Automatically
+      - name: Setup Capacitor & Install Plugins
         run: |
-          rm -rf www android node_modules package.json package-lock.json capacitor.config.json
-          mkdir -p www/data
+          rm -rf android node_modules package.json package-lock.json capacitor.config.json
+          npm init -y
+          npm install @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor/android@6.0.0 @capacitor-community/admob@6.0.0 @capacitor/share@6.0.0
+          npx cap init "BrainVault 10K" "com.brainvault.raretrivia10k" --web-dir www
+          npx cap add android
+          npx cap sync android
 
-          cat << 'EOF' > package.json
-          {
-            "name": "brainvault-10k-quiz",
-            "version": "1.0.0",
-            "dependencies": {
-              "@capacitor-community/admob": "6.0.0",
-              "@capacitor/android": "6.0.0",
-              "@capacitor/app": "6.0.0",
-              "@capacitor/cli": "6.0.0",
-              "@capacitor/core": "6.0.0",
-              "@capacitor/share": "6.0.0"
-            }
-          }
-          EOF
+      - name: Add AdMob App ID & Internet Permission
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>\n<application/' $MANIFEST
+          sed -i 's/<\/application>/<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-5317235020851620~9004631084"\/><\/application>/' $MANIFEST
 
-          cat << 'EOF' > www/index.html
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-            <title>BrainVault 10K</title>
-            <style>
-              :root { --bg: #0b0f19; --card: #131a2a; --card-2: #1b2438; --primary: #6366f1; --accent: #10b981; --danger: #ef4444; --warn: #f59e0b; --text: #f8fafc; --muted: #94a3b8; --border: rgba(255,255,255,0.12); }
-              * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-              body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 85px; }
-              .app-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #131a2a; position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--border); }
-              .brand { display: flex; align-items: center; gap: 10px; }
-              .brand h1 { font-size: 17px; font-weight: 700; }
-              .brand small { font-size: 11px; color: var(--accent); display: block; font-weight: 600; }
-              .header-stats { display: flex; align-items: center; gap: 6px; }
-              .pill { background: var(--card-2); padding: 5px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); }
-              .icon-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 15px; }
-              .screen { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
-              .screen.active { display: block; }
-              .hero-card { background: linear-gradient(135deg, #1e1b4b, #131a2a); border: 1px solid rgba(99,102,241,0.45); border-radius: 18px; padding: 20px; margin-bottom: 16px; }
-              .badge { display: inline-block; background: rgba(99,102,241,0.25); color: #a5b4fc; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 12px; margin-bottom: 8px; }
-              .hero-card h2 { font-size: 19px; line-height: 1.35; margin-bottom: 6px; }
-              .hero-card p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-              .progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-              .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
-              #mastery-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); }
-              .btn-primary, .btn-secondary, .btn-outline { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; margin-top: 8px; }
-              .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
-              .btn-secondary { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
-              .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-              .native-ad-box { background: var(--card); border: 1px dashed rgba(245,158,11,0.5); border-radius: 14px; padding: 14px; margin-bottom: 18px; cursor: pointer; }
-              .ad-tag { display: inline-block; font-size: 9px; background: rgba(245,158,11,0.2); color: var(--warn); padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-bottom: 6px; }
-              .native-ad-box strong { font-size: 14px; color: #fcd34d; display: block; margin-bottom: 2px; }
-              .native-ad-box p { font-size: 12px; color: var(--muted); }
-              .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-              .text-btn { background: none; border: none; color: #818cf8; font-weight: 600; font-size: 13px; cursor: pointer; }
-              .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }
-              .cat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; cursor: pointer; }
-              .cat-icon { font-size: 24px; margin-bottom: 6px; display: block; }
-              .cat-card h4 { font-size: 14px; margin-bottom: 3px; }
-              .cat-card span { font-size: 11px; color: var(--accent); font-weight: 600; }
-              .utility-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-              .util-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 12px 6px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
-              .quiz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-              .cat-pill { background: rgba(99,102,241,0.25); color: #a5b4fc; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-              .timer-ring { background: var(--card-2); padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px; border: 1px solid var(--border); }
-              .question-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
-              .question-card h2 { font-size: 17px; line-height: 1.45; margin-top: 8px; }
-              .options-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-              .opt-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 14px 16px; border-radius: 12px; text-align: left; font-size: 14px; cursor: pointer; width: 100%; }
-              .opt-btn.correct { background: rgba(16,185,129,0.25); border-color: var(--accent); color: #6ee7b7; }
-              .opt-btn.wrong { background: rgba(239,68,68,0.25); border-color: var(--danger); color: #fca5a5; }
-              .opt-btn.disabled { opacity: 0.3; pointer-events: none; }
-              .fact-box { background: rgba(99,102,241,0.18); border: 1px solid rgba(99,102,241,0.5); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
-              .fact-box.hidden { display: none; }
-              .fact-box p { font-size: 13px; line-height: 1.4; margin: 6px 0 10px; }
-              .fact-actions { display: flex; gap: 8px; }
-              .btn-sm { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-2); color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
-              .btn-next { background: var(--primary); border: none; }
-              .lifelines-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-              .lifeline-btn { background: var(--card-2); border: 1px solid var(--border); color: var(--text); padding: 10px 6px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-              .lifeline-btn small { font-size: 11px; color: var(--warn); }
-              .lifeline-btn:disabled { opacity: 0.35; }
-              .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px 18px; text-align: center; }
-              .result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
-              .r-stat { background: var(--card-2); padding: 12px; border-radius: 12px; }
-              .r-stat strong { display: block; font-size: 18px; color: var(--accent); }
-              .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: flex; align-items: flex-end; }
-              .modal.hidden { display: none; }
-              .modal-content { background: var(--card); width: 100%; max-height: 80vh; border-radius: 20px 20px 0 0; padding: 18px; overflow-y: auto; }
-              .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-              .saved-item { background: var(--card-2); padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 8px; }
-              .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            </style>
-          </head>
-          <body>
-            <header class="app-header">
-              <div class="brand">
-                <span style="font-size:26px">🧠</span>
-                <div>
-                  <h1>BrainVault 10K</h1>
-                  <small id="total-db-count">Loading...</small>
-                </div>
-              </div>
-              <div class="header-stats">
-                <div class="pill">🪙 <span id="coin-count">150</span></div>
-                <div class="pill">🔥 <span id="streak-count">1</span></div>
-                <button id="sound-toggle" class="icon-btn">🔊</button>
-              </div>
-            </header>
+      - name: Build & Sign APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          cd ..
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
+          keytool -genkey -v -keystore test.keystore -alias brainvault -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=BrainVault, OU=Dev, O=App, L=City, S=State, C=US"
+          $BUILD_TOOLS/zipalign -v -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          $BUILD_TOOLS/apksigner sign --ks test.keystore --ks-key-alias brainvault --ks-pass pass:123456 --key-pass pass:123456 --v1-signing-enabled true --v2-signing-enabled true --out BrainVault-10K-Signed.apk aligned.apk
 
-            <main id="home-screen" class="screen active">
-              <div class="hero-card">
-                <div class="badge">OFFLINE EDITION • RARE FACTS</div>
-                <h2>Challenge Your Mind With Facts Almost Nobody Knows</h2>
-                <p>Master mind-bending trivia questions across 10 unique categories.</p>
-                <div class="progress-info"><span>Mastery Progress</span><span id="mastery-text">0 Solved</span></div>
-                <div class="progress-bar"><div id="mastery-fill" style="width:0%"></div></div>
-                <button id="btn-quick-play" class="btn-primary">▶ Quick Play (Random Mix)</button>
-              </div>
-
-              <div id="native-ad-slot" class="native-ad-box">
-                <span class="ad-tag">SPONSORED • TAP FOR +50 🪙</span>
-                <strong>Daily Brain Challenge Reward</strong>
-                <p>Tap here to watch a quick video ad & claim +50 free lifeline coins!</p>
-              </div>
-
-              <div class="section-title">
-                <h3>Explore Categories</h3>
-                <button id="btn-open-bookmarks" class="text-btn">🔖 Saved (<span id="bookmark-count">0</span>)</button>
-              </div>
-
-              <div id="category-grid" class="category-grid"></div>
-
-              <div class="utility-bar">
-                <button id="btn-share-app" class="util-btn">📤 Share App</button>
-                <button id="btn-open-stats" class="util-btn">📊 My Stats</button>
-                <button id="btn-free-coins" class="util-btn">🎬 +50 Coins</button>
-              </div>
-            </main>
-
-            <section id="quiz-screen" class="screen">
-              <div class="quiz-top">
-                <button id="btn-exit-quiz" class="icon-btn">✕</button>
-                <div><span id="quiz-cat-badge" class="cat-pill">Science</span> <span id="q-counter" style="font-size:13px;color:#94a3b8">Q 1/15</span></div>
-                <div class="timer-ring" id="timer-box">⏱ <span id="timer-sec">20</span>s</div>
-              </div>
-              <div class="question-card">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-size:10px;color:#10b981;font-weight:700">RARE FACT</span>
-                  <button id="bookmark-btn" style="background:none;border:none;font-size:20px;color:#fff">🔖</button>
-                </div>
-                <h2 id="question-text">Loading...</h2>
-              </div>
-              <div id="options-list" class="options-list"></div>
-              <div id="fact-box" class="fact-box hidden">
-                <strong style="color:#a5b4fc;font-size:13px">💡 Did You Know?</strong>
-                <p id="fact-explanation"></p>
-                <div class="fact-actions">
-                  <button id="btn-share-fact" class="btn-sm">📤 Share Fact</button>
-                  <button id="btn-next-q" class="btn-sm btn-next">Next Question ➔</button>
-                </div>
-              </div>
-              <div class="lifelines-bar">
-                <button class="lifeline-btn" id="ll-5050"><span>✂️ 50:50</span><small>25 🪙</small></button>
-                <button class="lifeline-btn" id="ll-time"><span>⏳ +15s</span><small>20 🪙</small></button>
-                <button class="lifeline-btn" id="ll-skip"><span>⏭ Skip</span><small>🎬 Ad</small></button>
-              </div>
-            </section>
-
-            <section id="result-screen" class="screen">
-              <div class="result-card">
-                <div style="font-size:52px">🏆</div>
-                <h2>Round Complete!</h2>
-                <p style="color:#94a3b8;font-size:13px">You outperformed 84% of trivia players!</p>
-                <div class="result-stats">
-                  <div class="r-stat"><strong id="res-score">0</strong><span style="font-size:11px;color:#94a3b8">Score</span></div>
-                  <div class="r-stat"><strong id="res-correct">0/15</strong><span style="font-size:11px;color:#94a3b8">Correct</span></div>
-                  <div class="r-stat"><strong id="res-coins">+0</strong><span style="font-size:11px;color:#94a3b8">Coins</span></div>
-                </div>
-                <button id="btn-double-coins" class="btn-primary">🎬 2X Rewards (Watch Ad)</button>
-                <button id="btn-share-score" class="btn-secondary">📤 Challenge Friends</button>
-                <button id="btn-go-home" class="btn-outline">🏠 Back to Categories</button>
-              </div>
-            </section>
-
-            <div id="bookmarks-modal" class="modal hidden">
-              <div class="modal-content">
-                <div class="modal-head"><h3>🔖 Saved Unknown Facts</h3><button id="close-bookmarks" class="icon-btn">✕</button></div>
-                <div id="bookmarks-list"></div>
-              </div>
-            </div>
-
-            <div id="stats-modal" class="modal hidden">
-              <div class="modal-content">
-                <div class="modal-head"><h3>📊 Player Analytics</h3><button id="close-stats" class="icon-btn">✕</button></div>
-                <div id="stats-body" class="stats-grid"></div>
-              </div>
-            </div>
-
-            <script src="app.js"></script>
-          </body>
-          </html>
-          EOF
-
-          cat << 'EOF' > www/app.js
-          document.addEventListener("DOMContentLoaded", function () {
-            var CATS = [
-              { id: "History", name: "Lost History", icon: "🏛️" },
-              { id: "Science", name: "Weird Science", icon: "🧬" },
-              { id: "Space", name: "Deep Cosmos", icon: "🪐" },
-              { id: "Psychology", name: "Dark Psychology", icon: "🧠" },
-              { id: "Geography", name: "Hidden Earth", icon: "🌍" },
-              { id: "Inventions", name: "Forgotten Tech", icon: "⚙️" },
-              { id: "Nature", name: "Bizarre Nature", icon: "🦑" },
-              { id: "Culture", name: "Secret Culture", icon: "🎭" },
-              { id: "Records", name: "Impossible Feats", icon: "🏅" },
-              { id: "Mysteries", name: "Unsolved Files", icon: "🕵️" }
-            ];
-
-            var BANK = [
-              { id: 1, cat: "History", q: "Which Roman emperor appointed his horse Incitatus as a priest?", options: ["Caligula", "Nero", "Commodus", "Elagabalus"], ans: 0, fact: "Caligula gave Incitatus a marble stable and ivory manger." },
-              { id: 2, cat: "History", q: "In 1932, the Australian military fought an unsuccessful war against which bird?", options: ["Cassowary", "Emu", "Ostrich", "Kiwi"], ans: 1, fact: "During the Great Emu War, soldiers failed to cull the fast-moving emus." },
-              { id: 3, cat: "History", q: "Which ancient civilization used cocoa beans as official currency?", options: ["Incas", "Aztecs", "Olmecs", "Minoans"], ans: 1, fact: "100 cacao beans could buy a turkey in the Aztec empire." },
-              { id: 4, cat: "Science", q: "What is the only letter absent from the modern Periodic Table?", options: ["Q", "J", "X", "Z"], ans: 1, fact: "The letter J never appears in any element symbol or name." },
-              { id: 5, cat: "Science", q: "Which metal melts in your hand at just above room temperature?", options: ["Bismuth", "Gallium", "Indium", "Cesium"], ans: 1, fact: "Gallium melts at 29.76 degrees Celsius." },
-              { id: 6, cat: "Science", q: "What color is liquid oxygen when cooled below -183 C?", options: ["Colorless", "Pale blue", "Green", "White"], ans: 1, fact: "Liquid oxygen is pale blue and attracted to magnets." },
-              { id: 7, cat: "Space", q: "Which planet has a day longer than its entire year?", options: ["Mercury", "Venus", "Neptune", "Uranus"], ans: 1, fact: "Venus takes 243 Earth days to rotate once, and 225 days to orbit the Sun." },
-              { id: 8, cat: "Space", q: "Which moon of Saturn has lakes of liquid methane and ethane?", options: ["Enceladus", "Titan", "Mimas", "Rhea"], ans: 1, fact: "Titan is the only moon with a dense atmosphere and liquid surface lakes." },
-              { id: 9, cat: "Space", q: "Which planet spins on its side at a 98-degree tilt?", options: ["Neptune", "Uranus", "Saturn", "Mars"], ans: 1, fact: "A massive collision early in its history knocked Uranus onto its side." },
-              { id: 10, cat: "Psychology", q: "What is remembering unfinished tasks better than completed ones called?", options: ["Halo Effect", "Zeigarnik Effect", "Stroop Effect", "Capgras Delusion"], ans: 1, fact: "Named after Soviet psychologist Bluma Zeigarnik." },
-              { id: 11, cat: "Psychology", q: "What is forgetting why you entered a room upon crossing the doorway called?", options: ["Jamais Vu", "Doorway Effect", "Aphantasia", "Groupthink"], ans: 1, fact: "Doorways create event boundaries in human memory." },
-              { id: 12, cat: "Geography", q: "Which country contains more lakes than the rest of the world combined?", options: ["Finland", "Russia", "Canada", "Sweden"], ans: 2, fact: "Canada holds over 2 million lakes." },
-              { id: 13, cat: "Geography", q: "Which country has the most pyramids in the world, more than Egypt?", options: ["Mexico", "Sudan", "Peru", "Iraq"], ans: 1, fact: "Sudan has over 200 ancient Nubian pyramids." },
-              { id: 14, cat: "Inventions", q: "What toy was originally invented in 1899 as a wallpaper cleaner?", options: ["Silly Putty", "Play-Doh", "Lego", "Slinky"], ans: 1, fact: "Play-Doh originally cleaned coal soot off wallpaper." },
-              { id: 15, cat: "Inventions", q: "What was Bubble Wrap originally invented to be in 1957?", options: ["Space insulation", "Textured 3D wallpaper", "Shoe cushioning", "Glass wrap"], ans: 1, fact: "Engineers sealed two shower curtains together hoping to sell wallpaper." },
-              { id: 16, cat: "Nature", q: "How many brains and hearts does an octopus p
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrainVault-10K-Signed-APK
+          path: BrainVault-10K-Signed.apk
+          
