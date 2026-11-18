@@ -24,8 +24,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Capacitor & Install Plugins
+      - name: Move Files into www & Setup Capacitor
         run: |
+          mkdir -p www
+          cp -f app.js www/ 2>/dev/null || true
+          cp -f style.css www/ 2>/dev/null || true
+          cp -rf data www/ 2>/dev/null || true
           rm -rf android node_modules package.json package-lock.json capacitor.config.json
           npm init -y
           npm install @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor/android@6.0.0 @capacitor-community/admob@6.0.0 @capacitor/share@6.0.0
