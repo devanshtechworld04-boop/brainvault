@@ -1,0 +1,18 @@
+{
+  "name": "brainvault-10k-quiz",
+  "version": "1.0.0",
+  "description": "BrainVault 10K Rare & Unknown Facts Trivia Quiz",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Static web assets ready'"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "6.0.0",
+    "@capacitor/android": "6.0.0",
+    "@capacitor/app": "6.0.0",
+    "@capacitor/cli": "6.0.0",
+    "@capacitor/core": "6.0.0",
+    "@capacitor/haptics": "6.0.0",
+    "@capacitor/share": "6.0.0"
+  }
+}
